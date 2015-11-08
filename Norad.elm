@@ -70,12 +70,7 @@ update action model =
     IndexAction a ->
       case model.currentPage of
         IndexPage m ->
-          let
-              (nm, e) = Index.update a m
-              newModel = { model | currentPage <- IndexPage nm }
-              effects = Effects.map IndexAction e
-          in
-             (newModel, effects)
+          updatePage model (Index.update a m) IndexPage IndexAction
 
         _ ->
           -- navigated away; ignore action which may have come from async effect
@@ -84,17 +79,15 @@ update action model =
     PipelineAction a ->
       case model.currentPage of
         PipelinePage m ->
-          let
-              (nm, e) = Pipeline.update a m
-              newModel = { model | currentPage <- PipelinePage nm }
-              effects = Effects.map PipelineAction e
-          in
-             (newModel, effects)
+          updatePage model (Pipeline.update a m) PipelinePage PipelineAction
 
         _ ->
           -- navigated away; ignore action which may have come from async effect
           (model, Effects.none)
 
+
+updatePage : Model -> (pm, Effects pa) -> (pm -> Page) -> (pa -> Action) -> (Model, Effects Action)
+updatePage m (pm, pe) p a = ({ m | currentPage <- p pm }, Effects.map a pe)
 
 -- VIEW
 
