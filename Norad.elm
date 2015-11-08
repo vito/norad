@@ -14,7 +14,6 @@ import Time
 
 type alias Model =
   { pipelines : List Pipeline
-  , lastUpdated : Time.Time
   , connectionError : Bool
   }
 
@@ -24,32 +23,30 @@ type alias Pipeline =
   }
 
 init : (Model, Effects Action)
-init = (Model [] 0 False, fetchPipelines)
+init = (Model [] False, fetchPipelines)
 
 
 -- UPDATE
 
 type Action
   = PipelinesLoaded (Maybe (List Pipeline))
-  | Refresh Time.Time
+  | Refresh
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
     PipelinesLoaded Nothing ->
       ( { model | connectionError <- True }
-      , Effects.tick Refresh
+      , Effects.none
       )
 
     PipelinesLoaded (Just pipelines) ->
       ( { model | connectionError <- False, pipelines <- pipelines }
-      , Effects.tick Refresh
+      , Effects.none
       )
 
-    Refresh time ->
-      if (time - model.lastUpdated) > (5 * Time.second)
-         then ({ model | lastUpdated <- time }, fetchPipelines)
-         else (model, Effects.tick Refresh)
+    Refresh ->
+      (model, fetchPipelines)
 
 
 -- VIEW
