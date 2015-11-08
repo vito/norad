@@ -1,4 +1,5 @@
 import Effects
+import History
 import Html
 import RouteHash
 import StartApp
@@ -6,28 +7,23 @@ import Task
 import Time
 
 import Norad
+import Routes
 
-app : StartApp.App Norad.Model Norad.Action
+app : StartApp.App Norad.Model
 app =
   StartApp.start
     { init = Norad.init
     , update = Norad.update
     , view = Norad.view
     , inputs = []
+    , inits = [Signal.map Norad.GoTo pageNavigations]
     }
+
+pageNavigations : Signal Routes.Page
+pageNavigations = Signal.map Routes.mainRoute History.hash
 
 main : Signal Html.Html
 main = app.html
 
 port tasks : Signal (Task.Task Effects.Never ())
 port tasks = app.tasks
-
-port routeTasks : Signal (Task.Task () ())
-port routeTasks =
-  RouteHash.start
-    { prefix = RouteHash.defaultPrefix
-    , address = app.address
-    , models = app.model
-    , delta2update = Norad.delta2update
-    , location2action = Norad.location2action
-    }

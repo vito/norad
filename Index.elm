@@ -2,7 +2,7 @@ module Index where
 
 import Effects exposing (Effects, Never)
 import Html exposing (..)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (href)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Json exposing ((:=))
@@ -10,6 +10,7 @@ import RouteHash
 import Task
 import Time
 
+import Routes
 
 -- MODEL
 
@@ -32,7 +33,6 @@ init = (Model [] 0 False, fetchPipelines)
 
 type Action
   = PipelinesLoaded (Maybe (List Pipeline))
-  | GoToPipeline String
   | Refresh Time.Time
 
 update : Action -> Model -> (Model, Effects Action)
@@ -67,7 +67,7 @@ view address model =
 
 viewPipeline : Signal.Address Action -> Pipeline -> Html
 viewPipeline address pipeline =
-  a [onClick address (GoToPipeline pipeline.name)]
+  a [href (Routes.path (Routes.Pipeline pipeline.name))]
     [text (pipeline.name ++ " (" ++ (if pipeline.paused then "paused" else "active") ++ ")")]
 
 
