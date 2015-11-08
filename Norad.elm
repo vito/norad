@@ -47,18 +47,10 @@ update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
     GoTo (Routes.Index) ->
-      let
-          (m, e) = Index.init
-          newModel = { model | currentPage <- IndexPage m }
-      in
-        (newModel, Effects.map IndexAction e)
+      updatePage model Index.init IndexPage IndexAction
 
     GoTo (Routes.Pipeline pipeline) ->
-      let
-          (m, e) = Pipeline.init pipeline
-          newModel = { model | currentPage <- (PipelinePage m) }
-      in
-        (newModel, Effects.map PipelineAction e)
+      updatePage model (Pipeline.init pipeline) PipelinePage PipelineAction
 
     GoTo _ ->
       Debug.log "not found" (model, Effects.none)
