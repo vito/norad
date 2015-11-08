@@ -1,25 +1,33 @@
 import Effects
 import Html
+import RouteHash
 import StartApp
 import Task
 import Time
 
 import Norad
 
-app : StartApp.App Norad.Model
+app : StartApp.App Norad.Model Norad.Action
 app =
   StartApp.start
     { init = Norad.init
     , update = Norad.update
     , view = Norad.view
-    , inputs = [refreshEvery (5 * Time.second)]
+    , inputs = []
     }
 
 main : Signal Html.Html
 main = app.html
 
-refreshEvery : Time.Time -> Signal Norad.Action
-refreshEvery interval = Signal.map (always Norad.Refresh) (Time.every interval)
-
 port tasks : Signal (Task.Task Effects.Never ())
 port tasks = app.tasks
+
+port routeTasks : Signal (Task.Task () ())
+port routeTasks =
+  RouteHash.start
+    { prefix = RouteHash.defaultPrefix
+    , address = app.address
+    , models = app.model
+    , delta2update = Norad.delta2update
+    , location2action = Norad.location2action
+    }

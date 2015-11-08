@@ -1,80 +1,136 @@
 module Norad where
 
+import Debug
 import Effects exposing (Effects, Never)
 import Html exposing (..)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Json exposing ((:=))
+import RouteHash
 import Task
 import Time
 
+import Index
+import Pipeline
 
 -- MODEL
 
 type alias Model =
-  { pipelines : List Pipeline
-  , connectionError : Bool
+  { currentPage : Page
   }
 
-type alias Pipeline =
-  { name : String
-  , paused : Bool
-  }
+type Page
+  = IndexPage Index.Model
+  | PipelinePage Pipeline.Model
 
 init : (Model, Effects Action)
-init = (Model [] False, fetchPipelines)
+init =
+  let
+      (indexModel, indexEffects) = Index.init
+      model =
+        { currentPage = IndexPage indexModel
+        }
+  in
+     (model, Effects.map IndexAction indexEffects)
 
 
 -- UPDATE
 
 type Action
-  = PipelinesLoaded (Maybe (List Pipeline))
-  | Refresh
+  = GoToIndex
+  | GoToPipeline String
+  | IndexAction Index.Action
+  | PipelineAction Pipeline.Action
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
-    PipelinesLoaded Nothing ->
-      ( { model | connectionError <- True }
-      , Effects.none
-      )
+    GoToIndex ->
+      let
+          (m, e) = Index.init
+          newModel = { model | currentPage <- IndexPage m }
+      in
+        (newModel, Effects.map IndexAction e)
 
-    PipelinesLoaded (Just pipelines) ->
-      ( { model | connectionError <- False, pipelines <- pipelines }
-      , Effects.none
-      )
+    GoToPipeline pipeline ->
+      let
+          (m, e) = Pipeline.init pipeline
+          newModel = { model | currentPage <- (PipelinePage m) }
+      in
+        (newModel, Effects.map PipelineAction e)
 
-    Refresh ->
-      (model, fetchPipelines)
+    IndexAction (Index.GoToPipeline pipeline) ->
+      let
+          (m, e) = Pipeline.init pipeline
+          newModel = { model | currentPage <- (PipelinePage m) }
+      in
+        (newModel, Effects.map PipelineAction e)
+
+    IndexAction a ->
+      case model.currentPage of
+        IndexPage m ->
+          let
+              (nm, e) = Index.update a m
+              newModel = { model | currentPage <- IndexPage nm }
+              effects = Effects.map IndexAction e
+          in
+             (newModel, effects)
+
+        _ ->
+          -- navigated away; ignore action which may have come from async effect
+          (model, Effects.none)
+
+    PipelineAction a ->
+      case model.currentPage of
+        PipelinePage m ->
+          let
+              (nm, e) = Pipeline.update a m
+              newModel = { model | currentPage <- PipelinePage nm }
+              effects = Effects.map PipelineAction e
+          in
+             (newModel, effects)
+
+        _ ->
+          -- navigated away; ignore action which may have come from async effect
+          (model, Effects.none)
 
 
 -- VIEW
 
 view : Signal.Address Action -> Model -> Html
 view address model =
-  div []
-    [ ul [] (List.map (\p -> li [] [viewPipeline p]) model.pipelines)
-    , if model.connectionError
-         then text "connection failed"
-         else text "connection ok"
-    ]
+  case model.currentPage of
+    IndexPage m ->
+      Index.view (Signal.forwardTo address IndexAction) m
 
-viewPipeline : Pipeline -> Html
-viewPipeline pipeline =
-  text (pipeline.name ++ " (" ++ (if pipeline.paused then "paused" else "active") ++ ")")
+    PipelinePage m ->
+      Pipeline.view (Signal.forwardTo address PipelineAction) m
 
+-- ROUTING
 
--- EFFECTS
+delta2update : Model -> Model -> Maybe RouteHash.HashUpdate
+delta2update previous current =
+  case current.currentPage of
+    IndexPage _ ->
+      Just <|
+        RouteHash.set ["index"]
 
-fetchPipelines : Effects Action
-fetchPipelines =
-  Http.get decodePipelines "http://127.0.0.1:8080/api/v1/pipelines"
-    |> Task.toMaybe
-    |> Task.map PipelinesLoaded
-    |> Effects.task
+    PipelinePage m ->
+      Just <|
+        RouteHash.set ["pipelines", m.pipeline]
 
+    _ ->
+      Nothing
 
-decodePipelines : Json.Decoder (List Pipeline)
-decodePipelines =
-  Json.list (Json.object2 Pipeline ("name" := Json.string) ("paused" := Json.bool))
+location2action : List String -> List Action
+location2action route =
+  case route of
+    "index" :: _ ->
+      [GoToIndex]
+
+    "pipelines" :: pipeline :: _ ->
+      [GoToPipeline pipeline]
+
+    _ ->
+      []
