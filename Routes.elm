@@ -11,7 +11,8 @@ type Page
 
 mainRoute : Route Page
 mainRoute = match
-  [ "#!/index" :-> always Index
+  [ "" :-> always Index
+  , "#!/index" :-> always Index
   , "#!/pipelines/" :-> pipelineRoute
   ] NotFound
 
