@@ -13,6 +13,7 @@ import Time
 
 import Index
 import Pipeline
+import Job
 import Routes
 
 -- MODEL
@@ -24,6 +25,7 @@ type alias Model =
 type Page
   = IndexPage Index.Model
   | PipelinePage Pipeline.Model
+  | JobPage Job.Model
 
 init : (Model, Effects Action)
 init =
@@ -42,6 +44,7 @@ type Action
   = GoTo Routes.Page
   | IndexAction Index.Action
   | PipelineAction Pipeline.Action
+  | JobAction Job.Action
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
@@ -51,6 +54,9 @@ update action model =
 
     GoTo (Routes.Pipeline pipeline) ->
       updatePage model (Pipeline.init pipeline) PipelinePage PipelineAction
+
+    GoTo (Routes.Job pipeline job) ->
+      updatePage model (Job.init pipeline job) JobPage JobAction
 
     GoTo _ ->
       Debug.log "not found" (model, Effects.none)
@@ -73,6 +79,15 @@ update action model =
           -- navigated away; ignore action which may have come from async effect
           (model, Effects.none)
 
+    JobAction a ->
+      case model.currentPage of
+        JobPage m ->
+          updatePage model (Job.update a m) JobPage JobAction
+
+        _ ->
+          -- navigated away; ignore action which may have come from async effect
+          (model, Effects.none)
+
 updatePage : Model -> (pm, Effects pa) -> (pm -> Page) -> (pa -> Action) -> (Model, Effects Action)
 updatePage m (pm, pe) p a = ({ m | currentPage <- p pm }, Effects.map a pe)
 
@@ -87,3 +102,6 @@ view address model =
 
     PipelinePage m ->
       Pipeline.view (Signal.forwardTo address PipelineAction) m
+
+    JobPage m ->
+      Job.view (Signal.forwardTo address JobAction) m

@@ -3,13 +3,14 @@ module Pipeline where
 import Debug
 import Effects exposing (Effects, Never)
 import Html exposing (..)
-import Html.Attributes exposing (style)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (href)
 import Http
 import Json.Decode as Json exposing ((:=))
 import RouteHash
 import Task
 import Time
+
+import Routes
 
 
 -- MODEL
@@ -61,15 +62,16 @@ view : Signal.Address Action -> Model -> Html
 view address model =
   div []
     [ h1 [] [text model.pipeline]
-    , ul [] (List.map (\p -> li [] [viewJob p]) model.jobs)
+    , ul [] (List.map (\p -> li [] [viewJob model.pipeline p]) model.jobs)
     , if model.connectionError
          then text "connection failed"
          else text "connection ok"
     ]
 
-viewJob : Job -> Html
-viewJob job =
-  text (job.name ++ " (" ++ (if job.paused then "paused" else "active") ++ ")")
+viewJob : String -> Job -> Html
+viewJob pipeline job =
+  a [href (Routes.path (Routes.Job pipeline job.name))]
+    [text (job.name ++ " (" ++ (if job.paused then "paused" else "active") ++ ")")]
 
 
 -- EFFECTS
