@@ -21,7 +21,7 @@ import Routes
 
 type alias Model =
   { currentPage : Page
-  , events : Signal.Address Action
+  , pageDrivenActions : Signal.Address Action
   }
 
 type Page
@@ -31,12 +31,12 @@ type Page
   | BuildPage Build.Model
 
 init : Signal.Address Action -> (Model, Effects Action)
-init events =
+init pageDrivenActions =
   let
       (indexModel, indexEffects) = Index.init
       model =
         { currentPage = IndexPage indexModel
-        , events = events
+        , pageDrivenActions = pageDrivenActions
         }
   in
      (model, Effects.map IndexAction indexEffects)
@@ -45,7 +45,7 @@ init events =
 -- UPDATE
 
 type Action
-  = Event
+  = Noop
   | GoTo Routes.Page
   | IndexAction Index.Action
   | PipelineAction Pipeline.Action
@@ -55,6 +55,9 @@ type Action
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
+    Noop ->
+      (model, Effects.none)
+
     GoTo (Routes.Index) ->
       updatePage model Index.init IndexPage IndexAction
 
@@ -65,7 +68,10 @@ update action model =
       updatePage model (Job.init pipeline job) JobPage JobAction
 
     GoTo (Routes.Build build) ->
-      updatePage model (Build.init (Signal.forwardTo model.events BuildAction) build) BuildPage BuildAction
+      let
+        buildActions = Signal.forwardTo model.pageDrivenActions BuildAction
+      in
+        updatePage model (Build.init buildActions build) BuildPage BuildAction
 
     GoTo _ ->
       Debug.log "not found" (model, Effects.none)

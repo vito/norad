@@ -9,18 +9,18 @@ import Time
 import Norad
 import Routes
 
-events : Signal.Mailbox Norad.Action
-events = Signal.mailbox Norad.Event
-
 app : StartApp.App Norad.Model
 app =
-  StartApp.start
-    { init = Norad.init events.address
-    , update = Norad.update
-    , view = Norad.view
-    , inputs = [events.signal]
-    , inits = [Signal.map Norad.GoTo pageNavigations]
-    }
+  let
+    pageDrivenActions = Signal.mailbox Norad.Noop
+  in
+    StartApp.start
+      { init = Norad.init pageDrivenActions.address
+      , update = Norad.update
+      , view = Norad.view
+      , inputs = [pageDrivenActions.signal]
+      , inits = [Signal.map Norad.GoTo pageNavigations]
+      }
 
 pageNavigations : Signal Routes.Page
 pageNavigations = Signal.map Routes.mainRoute History.hash
