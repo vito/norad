@@ -28,7 +28,9 @@ init actions build = (Model actions build Nothing [] False, subscribeToEvents bu
 -- UPDATE
 
 type Action
-  = Connected EventSource.EventSource
+  = Listening EventSource.EventSource
+  | Opened
+  | Errored EventSource.ReadyState
   | Event EventSource.Event
   | EndOfEvents
   | Closed
@@ -36,8 +38,14 @@ type Action
 update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
   case action of
-    Connected es ->
+    Listening es ->
       ({ model | eventSource <- Just es }, Effects.none)
+
+    Opened ->
+      (model, Effects.none)
+
+    Errored _ ->
+      (model, Effects.none)
 
     Event e ->
       ({ model | events <- model.events ++ [e] }, Effects.none)
@@ -72,12 +80,16 @@ view address model =
 subscribeToEvents : String -> Signal.Address Action -> Effects.Effects Action
 subscribeToEvents build actions =
   let
-      connect = EventSource.connect ("http://127.0.0.1:8080/api/v1/builds/" ++ build ++ "/events")
+      settings =
+        EventSource.Settings
+          (Just (Signal.forwardTo actions (always Opened)))
+          (Just (Signal.forwardTo actions Errored))
+      connect = EventSource.connect ("http://127.0.0.1:8080/api/v1/builds/" ++ build ++ "/events") settings
       eventsSub = EventSource.on "event" (Signal.forwardTo actions Event)
       endSub = EventSource.on "end" (Signal.forwardTo actions (always EndOfEvents))
   in
     connect `Task.andThen` eventsSub `Task.andThen` endSub
-      |> Task.map Connected
+      |> Task.map Listening
       |> Effects.task
 
 closeEvents : EventSource.EventSource -> Effects.Effects Action

@@ -10,35 +10,39 @@ Elm.Native.EventSource.make = function(localRuntime) {
   var Maybe = Elm.Maybe.make(localRuntime);
   var Utils = Elm.Native.Utils.make (localRuntime);
 
-  function connect(uri) {
-    var es;
+  function connect(uri, settings) {
     return Task.asyncFunction(function(callback) {
-      es = es || new EventSource(uri);
-      if (es.connected) {
-        callback(Task.succeed(es));
-      } else {
-        attemptConnection(es, callback);
+      var es = new EventSource(uri);
+
+      if (settings.onOpen.ctor === "Just") {
+        es.onopen = function() {
+          Task.perform(settings.onOpen._0._0(Utils.Tuple0));
+        };
       }
+
+      if (settings.onError.ctor === "Just") {
+        es.onerror = function(e) {
+          var readyState;
+
+          switch (e.currentTarget.readyState) {
+            case 0:
+              readyState = { ctor: "Connecting" };
+            case 1:
+              readyState = { ctor: "Open" };
+            case 2:
+              readyState = { ctor: "Closed" };
+          }
+
+          Task.perform(settings.onError._0._0(readyState));
+        };
+      }
+
+      callback(Task.succeed(es));
     });
-  }
-
-  function attemptConnection(es, callback) {
-    var sent = false;
-
-    es.onopen = function() {
-      if (!sent) {
-        sent = true;
-        callback(Task.succeed(es));
-      }
-    };
   }
 
   function on(eventName, address, es) {
     return Task.asyncFunction(function(callback) {
-      if (eventName === "") {
-        eventName = "message";
-      }
-
       es.addEventListener(eventName, function(event) {
         Task.perform(address._0({
           ctor: "Event",
@@ -60,7 +64,7 @@ Elm.Native.EventSource.make = function(localRuntime) {
   }
 
   localRuntime.Native.EventSource.values = {
-    connect: connect,
+    connect: F2(connect),
     on: F3(on),
     close: close,
   };
