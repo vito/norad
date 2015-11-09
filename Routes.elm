@@ -8,12 +8,14 @@ type Page
   | Index
   | Pipeline String
   | Job String String
+  | Build String
 
 mainRoute : Route Page
 mainRoute = match
   [ "" :-> always Index
   , "#!/index" :-> always Index
   , "#!/pipelines/" :-> pipelineRoute
+  , "#!/builds/" :-> Build
   ] NotFound
 
 pipelineRoute : Route Page
@@ -26,8 +28,9 @@ pipelineRoute route =
       Job name job
 
 path : Page -> String
-path path =
-  case path of
+path page =
+  case page of
     Index -> "#!/"
     Pipeline name -> "#!/pipelines/" ++ name
     Job pipeline name -> "#!/pipelines/" ++ pipeline ++ "/jobs/" ++ name
+    Build id -> "#!/builds/" ++ id

@@ -3,13 +3,14 @@ module Job where
 import Debug
 import Effects exposing (Effects, Never)
 import Html exposing (..)
-import Html.Attributes exposing (style)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (href)
 import Http
 import Json.Decode as Json exposing ((:=))
 import RouteHash
 import Task
 import Time
+
+import Routes
 
 
 -- MODEL
@@ -22,7 +23,8 @@ type alias Model =
   }
 
 type alias Build =
-  { name : String
+  { id : Int
+  , name : String
   , status : String
   }
 
@@ -62,7 +64,8 @@ view address model =
 
 viewBuild : Build -> Html
 viewBuild build =
-  text (build.name ++ " (" ++ build.status ++ ")")
+  a [href (Routes.path (Routes.Build (toString build.id)))]
+    [text (build.name ++ " (" ++ build.status ++ ")")]
 
 
 -- EFFECTS
@@ -78,6 +81,7 @@ fetchBuilds pipeline job =
 decodeBuilds : Json.Decoder (List Build)
 decodeBuilds =
   Json.list <|
-    Json.object2 Build
+    Json.object3 Build
+      ("id" := Json.int)
       ("name" := Json.string)
       ("status" := Json.string)

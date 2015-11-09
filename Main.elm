@@ -9,13 +9,16 @@ import Time
 import Norad
 import Routes
 
+events : Signal.Mailbox Norad.Action
+events = Signal.mailbox Norad.Event
+
 app : StartApp.App Norad.Model
 app =
   StartApp.start
-    { init = Norad.init
+    { init = Norad.init events.address
     , update = Norad.update
     , view = Norad.view
-    , inputs = []
+    , inputs = [events.signal]
     , inits = [Signal.map Norad.GoTo pageNavigations]
     }
 
