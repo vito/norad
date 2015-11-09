@@ -1,6 +1,6 @@
 module Routes where
 
-import Router exposing (..)
+import Router exposing ((:->))
 import String
 
 type Page
@@ -10,15 +10,15 @@ type Page
   | Job String String
   | Build String
 
-mainRoute : Route Page
-mainRoute = match
+mainRoute : Router.Route Page
+mainRoute = Router.match
   [ "" :-> always Index
   , "#!/index" :-> always Index
   , "#!/pipelines/" :-> pipelineRoute
   , "#!/builds/" :-> Build
   ] NotFound
 
-pipelineRoute : Route Page
+pipelineRoute : Router.Route Page
 pipelineRoute route =
   case String.split "/" route of
     [name] ->

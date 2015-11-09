@@ -1,15 +1,8 @@
 module Build where
 
-import Debug
-import Effects exposing (Effects, Never)
-import Html exposing (..)
-import Html.Attributes exposing (style)
-import Html.Events exposing (onClick)
-import Http
-import Json.Decode as Json exposing ((:=))
-import RouteHash
+import Effects
+import Html
 import Task
-import Time
 
 import EventSource
 
@@ -28,7 +21,7 @@ type alias Build =
   , status : String
   }
 
-init : Signal.Address Action -> String -> (Model, Effects Action)
+init : Signal.Address Action -> String -> (Model, Effects.Effects Action)
 init actions build = (Model actions build Nothing [] False, subscribeToEvents build actions)
 
 
@@ -40,7 +33,7 @@ type Action
   | EndOfEvents
   | Closed
 
-update : Action -> Model -> (Model, Effects Action)
+update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
   case action of
     Connected es ->
@@ -63,20 +56,20 @@ update action model =
 
 -- VIEW
 
-view : Signal.Address Action -> Model -> Html
+view : Signal.Address Action -> Model -> Html.Html
 view address model =
-  div []
-    [ h1 [] [text ("build #" ++ model.build)]
-    , ul [] (List.map (\e -> li [] [text e.data]) model.events)
+  Html.div []
+    [ Html.h1 [] [Html.text ("build #" ++ model.build)]
+    , Html.ul [] (List.map (\e -> Html.li [] [Html.text e.data]) model.events)
     , if model.connectionError
-         then text "connection failed"
-         else text "connection ok"
+         then Html.text "connection failed"
+         else Html.text "connection ok"
     ]
 
 
 -- EFFECTS
 
-subscribeToEvents : String -> Signal.Address Action -> Effects Action
+subscribeToEvents : String -> Signal.Address Action -> Effects.Effects Action
 subscribeToEvents build actions =
   let
       connect = EventSource.connect ("http://127.0.0.1:8080/api/v1/builds/" ++ build ++ "/events")
@@ -87,7 +80,7 @@ subscribeToEvents build actions =
       |> Task.map Connected
       |> Effects.task
 
-closeEvents : EventSource.EventSource -> Effects Action
+closeEvents : EventSource.EventSource -> Effects.Effects Action
 closeEvents eventSource =
   EventSource.close eventSource
     |> Task.map (always Closed)

@@ -1,12 +1,10 @@
 module Index where
 
-import Effects exposing (Effects, Never)
-import Html exposing (..)
-import Html.Attributes exposing (href)
-import Html.Events exposing (onClick)
+import Effects
+import Html
+import Html.Attributes
 import Http
 import Json.Decode as Json exposing ((:=))
-import RouteHash
 import Task
 import Time
 
@@ -25,7 +23,7 @@ type alias Pipeline =
   , paused : Bool
   }
 
-init : (Model, Effects Action)
+init : (Model, Effects.Effects Action)
 init = (Model [] 0 False, fetchPipelines)
 
 
@@ -35,7 +33,7 @@ type Action
   = PipelinesLoaded (Maybe (List Pipeline))
   | Refresh Time.Time
 
-update : Action -> Model -> (Model, Effects Action)
+update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
   case action of
     PipelinesLoaded Nothing ->
@@ -56,25 +54,26 @@ update action model =
 
 -- VIEW
 
-view : Signal.Address Action -> Model -> Html
+view : Signal.Address Action -> Model -> Html.Html
 view address model =
-  div []
-    [ ul [] (List.map (\p -> li [] [viewPipeline address p]) model.pipelines)
+  Html.div []
+    [ Html.ul [] (List.map (\p -> Html.li [] [viewPipeline address p]) model.pipelines)
     , if model.connectionError
-         then text "connection failed"
-         else text "connection ok"
+         then Html.text "connection failed"
+         else Html.text "connection ok"
     ]
 
-viewPipeline : Signal.Address Action -> Pipeline -> Html
+viewPipeline : Signal.Address Action -> Pipeline -> Html.Html
 viewPipeline address pipeline =
-  a [href (Routes.path (Routes.Pipeline pipeline.name))]
-    [text (pipeline.name ++ " (" ++ (if pipeline.paused then "paused" else "active") ++ ")")]
+  Html.a
+    [Html.Attributes.href (Routes.path (Routes.Pipeline pipeline.name))]
+    [Html.text (pipeline.name ++ " (" ++ (if pipeline.paused then "paused" else "active") ++ ")")]
 
 
 
 -- EFFECTS
 
-fetchPipelines : Effects Action
+fetchPipelines : Effects.Effects Action
 fetchPipelines =
   Http.get decodePipelines "http://127.0.0.1:8080/api/v1/pipelines"
     |> Task.toMaybe

@@ -1,15 +1,8 @@
 module Norad where
 
 import Debug
-import Effects exposing (Effects, Never)
-import Html exposing (..)
-import Html.Attributes exposing (style)
-import Html.Events exposing (onClick)
-import Http
-import Json.Decode as Json exposing ((:=))
-import RouteHash
-import Task
-import Time
+import Effects
+import Html
 
 import Index
 import Pipeline
@@ -30,7 +23,7 @@ type Page
   | JobPage Job.Model
   | BuildPage Build.Model
 
-init : Signal.Address Action -> (Model, Effects Action)
+init : Signal.Address Action -> (Model, Effects.Effects Action)
 init pageDrivenActions =
   let
       (indexModel, indexEffects) = Index.init
@@ -52,7 +45,7 @@ type Action
   | JobAction Job.Action
   | BuildAction Build.Action
 
-update : Action -> Model -> (Model, Effects Action)
+update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
   case action of
     Noop ->
@@ -112,13 +105,13 @@ update action model =
           -- navigated away; ignore action which may have come from async effect
           (model, Effects.none)
 
-updatePage : Model -> (pm, Effects pa) -> (pm -> Page) -> (pa -> Action) -> (Model, Effects Action)
+updatePage : Model -> (pm, Effects.Effects pa) -> (pm -> Page) -> (pa -> Action) -> (Model, Effects.Effects Action)
 updatePage m (pm, pe) p a = ({ m | currentPage <- p pm }, Effects.map a pe)
 
 
 -- VIEW
 
-view : Signal.Address Action -> Model -> Html
+view : Signal.Address Action -> Model -> Html.Html
 view address model =
   case model.currentPage of
     IndexPage m ->

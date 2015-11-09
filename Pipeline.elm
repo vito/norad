@@ -1,12 +1,10 @@
 module Pipeline where
 
-import Debug
-import Effects exposing (Effects, Never)
-import Html exposing (..)
-import Html.Attributes exposing (href)
+import Effects
+import Html
+import Html.Attributes
 import Http
 import Json.Decode as Json exposing ((:=))
-import RouteHash
 import Task
 import Time
 
@@ -27,7 +25,7 @@ type alias Job =
   , paused : Bool
   }
 
-init : String -> (Model, Effects Action)
+init : String -> (Model, Effects.Effects Action)
 init pipeline = (Model pipeline [] 0 False, fetchJobs pipeline)
 
 
@@ -37,7 +35,7 @@ type Action
   = JobsLoaded (Maybe (List Job))
   | Refresh Time.Time
 
-update : Action -> Model -> (Model, Effects Action)
+update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
   case action of
     JobsLoaded Nothing ->
@@ -58,25 +56,26 @@ update action model =
 
 -- VIEW
 
-view : Signal.Address Action -> Model -> Html
+view : Signal.Address Action -> Model -> Html.Html
 view address model =
-  div []
-    [ h1 [] [text model.pipeline]
-    , ul [] (List.map (\p -> li [] [viewJob model.pipeline p]) model.jobs)
+  Html.div []
+    [ Html.h1 [] [Html.text model.pipeline]
+    , Html.ul [] (List.map (\p -> Html.li [] [viewJob model.pipeline p]) model.jobs)
     , if model.connectionError
-         then text "connection failed"
-         else text "connection ok"
+         then Html.text "connection failed"
+         else Html.text "connection ok"
     ]
 
-viewJob : String -> Job -> Html
+viewJob : String -> Job -> Html.Html
 viewJob pipeline job =
-  a [href (Routes.path (Routes.Job pipeline job.name))]
-    [text (job.name ++ " (" ++ (if job.paused then "paused" else "active") ++ ")")]
+  Html.a
+    [Html.Attributes.href (Routes.path (Routes.Job pipeline job.name))]
+    [Html.text (job.name ++ " (" ++ (if job.paused then "paused" else "active") ++ ")")]
 
 
 -- EFFECTS
 
-fetchJobs : String -> Effects Action
+fetchJobs : String -> Effects.Effects Action
 fetchJobs pipeline =
   Http.get decodeJobs ("http://127.0.0.1:8080/api/v1/pipelines/" ++ pipeline ++ "/jobs")
     |> Task.toMaybe
