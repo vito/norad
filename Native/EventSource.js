@@ -22,18 +22,7 @@ Elm.Native.EventSource.make = function(localRuntime) {
 
       if (settings.onError.ctor === "Just") {
         es.onerror = function(e) {
-          var readyState;
-
-          switch (e.currentTarget.readyState) {
-            case 0:
-              readyState = { ctor: "Connecting" };
-            case 1:
-              readyState = { ctor: "Open" };
-            case 2:
-              readyState = { ctor: "Closed" };
-          }
-
-          Task.perform(settings.onError._0._0(readyState));
+          Task.perform(settings.onError._0._0(Utils.Tuple0));
         };
       }
 

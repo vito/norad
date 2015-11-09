@@ -30,7 +30,7 @@ init actions build = (Model actions build Nothing [] False, subscribeToEvents bu
 type Action
   = Listening EventSource.EventSource
   | Opened
-  | Errored EventSource.ReadyState
+  | Errored
   | Event EventSource.Event
   | EndOfEvents
   | Closed
@@ -44,7 +44,7 @@ update action model =
     Opened ->
       (model, Effects.none)
 
-    Errored _ ->
+    Errored ->
       (model, Effects.none)
 
     Event e ->
@@ -83,7 +83,7 @@ subscribeToEvents build actions =
       settings =
         EventSource.Settings
           (Just (Signal.forwardTo actions (always Opened)))
-          (Just (Signal.forwardTo actions Errored))
+          (Just (Signal.forwardTo actions (always Errored)))
       connect = EventSource.connect ("http://127.0.0.1:8080/api/v1/builds/" ++ build ++ "/events") settings
       eventsSub = EventSource.on "event" (Signal.forwardTo actions Event)
       endSub = EventSource.on "end" (Signal.forwardTo actions (always EndOfEvents))

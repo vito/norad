@@ -29,13 +29,6 @@ type alias Event =
   , data : String
   }
 
-{-| The state of the connection.
--}
-type ReadyState
-  = Connecting
-  | Open
-  | Closed
-
 {-| Configure the EventSource with callbacks.
 
   * `onOpen` corresponds to the EventSource `onopen` callback.
@@ -43,7 +36,7 @@ type ReadyState
 -}
 type alias Settings =
   { onOpen : Maybe (Signal.Address ())
-  , onError : Maybe (Signal.Address ReadyState)
+  , onError : Maybe (Signal.Address ())
   }
 
 {-| Connect to an EventSource endpoint. The `Settings` argument allows you to
