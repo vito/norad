@@ -1,5 +1,6 @@
 module Log where
 
+import Array
 import Char
 import Debug
 import Html
@@ -8,107 +9,40 @@ import Html.Lazy
 import String
 
 import Ansi
+import Ansi.Log
 
 type alias Model =
-  { previousLines : List Line
-  , currentLine : Line
-  , linePosition : Int
-  , currentStyle : Style
-  , remainder : String
-  }
-
-type alias Line = List Chunk
-
-type alias Chunk =
-  { text : String
-  , style : Style
-  }
-
-type alias Style =
-  { foreground : Maybe Ansi.Color
-  , background : Maybe Ansi.Color
-  , bold : Bool
-  , faint : Bool
-  , italic : Bool
-  , underline : Bool
-  , inverted : Bool
+  { window : Ansi.Log.Window
   }
 
 init : Model
-init = Model [] [] 0 (Style Nothing Nothing False False False False False) ""
+init = Model Ansi.Log.init
 
 update : String -> Model -> Model
-update str model = List.foldl handleAnsiAction model (Ansi.parse (model.remainder ++ str))
-
-handleAnsiAction : Ansi.Action -> Model -> Model
-handleAnsiAction action model =
-  case action of
-    Ansi.Print s ->
-      let
-        chunk = Chunk s model.currentStyle
-        line = writeChunk model.linePosition chunk model.currentLine
-      in
-        { model | currentLine <- line
-                , linePosition <- model.linePosition + String.length s }
-
-    Ansi.CarriageReturn ->
-      { model | linePosition <- 0 }
-
-    Ansi.Linebreak ->
-      { model | previousLines <- model.previousLines ++ [model.currentLine]
-              , currentLine <- [] }
-
-    Ansi.Remainder s ->
-      { model | remainder <- s }
-
-    _ ->
-      { model | currentStyle <- updateStyle action model.currentStyle }
-
-updateStyle : Ansi.Action -> Style -> Style
-updateStyle action style =
-  case action of
-    Ansi.SetForeground mc ->
-      { style | foreground <- mc }
-
-    Ansi.SetBackground mc ->
-      { style | background <- mc }
-
-    Ansi.SetInverted b ->
-      { style | inverted <- b }
-
-    Ansi.SetBold b ->
-      { style | bold <- b }
-
-    Ansi.SetFaint b ->
-      { style | faint <- b }
-
-    Ansi.SetItalic b ->
-      { style | italic <- b }
-
-    Ansi.SetUnderline b ->
-      { style | underline <- b }
+update str model =
+  { model | window <- Ansi.Log.update str model.window }
 
 view : Model -> Html.Html
 view model =
   Html.pre []
-    (List.map lazyLine model.previousLines ++ [lazyLine model.currentLine])
+    (Array.toList (Array.map lazyLine model.window.lines))
 
-lazyLine : Line -> Html.Html
+lazyLine : Ansi.Log.Line -> Html.Html
 lazyLine = Html.Lazy.lazy viewLine
 
-viewLine : Line -> Html.Html
+viewLine : Ansi.Log.Line -> Html.Html
 viewLine line =
   case line of
     [] -> Html.div [] [Html.text "\n"]
     _  -> Html.div [] (List.map viewChunk line)
 
-viewChunk : Chunk -> Html.Html
+viewChunk : Ansi.Log.Chunk -> Html.Html
 viewChunk chunk =
   Html.span
     [Html.Attributes.style (styleStyle chunk.style)]
     [Html.text chunk.text]
 
-styleStyle : Style -> List (String, String)
+styleStyle : Ansi.Log.Style -> List (String, String)
 styleStyle style =
   [ ("font-weight", if style.bold then "bold" else "normal")
   , ("color", colorStyle (if not style.inverted then style.foreground else style.background))
@@ -135,40 +69,3 @@ colorStyle mc =
     Just (Ansi.BrightMagenta) -> "#FBB1F9"
     Just (Ansi.BrightCyan) -> "#77DFD8"
     Just (Ansi.BrightWhite) -> "#F7F7F7"
-
-writeChunk : Int -> Chunk -> Line -> Line
-writeChunk pos chunk line =
-  let
-    before = takeLen pos line
-    after = dropLen (pos + String.length chunk.text) line
-  in
-    before ++ [chunk] ++ after
-
-dropLen : Int -> Line -> Line
-dropLen len line =
-  case line of
-    lc :: lcs ->
-      let
-          chunkLen = String.length lc.text
-      in
-        if chunkLen > len
-           then { lc | text <- String.dropLeft len lc.text } :: lcs
-           else dropLen (len - chunkLen) lcs
-
-    [] -> []
-
-takeLen : Int -> Line -> Line
-takeLen len line =
-  if len == 0 then
-    []
-  else
-    case line of
-      lc :: lcs ->
-        let
-            chunkLen = String.length lc.text
-        in
-          if chunkLen < len
-             then lc :: takeLen (len - chunkLen) lcs
-             else [{ lc | text <- String.left len lc.text }]
-
-      [] -> []
