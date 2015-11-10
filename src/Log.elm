@@ -43,68 +43,50 @@ update str model = List.foldl handleAnsiAction model (Ansi.parse (model.remainde
 handleAnsiAction : Ansi.Action -> Model -> Model
 handleAnsiAction action model =
   case action of
-    Ansi.SetForeground mc ->
-      let
-        cs = model.currentStyle
-      in
-        { model | currentStyle <- { cs | foreground <- mc } }
-
-    Ansi.SetBackground mc ->
-      let
-        cs = model.currentStyle
-      in
-        { model | currentStyle <- { cs | background <- mc } }
-
-    Ansi.SetInverted b ->
-      let
-        cs = model.currentStyle
-      in
-        { model | currentStyle <- { cs | inverted <- b } }
-
-    Ansi.SetBold b ->
-      let
-        cs = model.currentStyle
-      in
-        { model | currentStyle <- { cs | bold <- b } }
-
-    Ansi.SetFaint b ->
-      let
-        cs = model.currentStyle
-      in
-        { model | currentStyle <- { cs | faint <- b } }
-
-    Ansi.SetItalic b ->
-      let
-        cs = model.currentStyle
-      in
-        { model | currentStyle <- { cs | italic <- b } }
-
-    Ansi.SetUnderline b ->
-      let
-        cs = model.currentStyle
-      in
-        { model | currentStyle <- { cs | underline <- b } }
-
     Ansi.Print s ->
       let
-          chunk = Chunk s model.currentStyle
+        chunk = Chunk s model.currentStyle
+        line = writeChunk model.linePosition chunk model.currentLine
       in
-        { model |
-          currentLine <- writeChunk model.linePosition chunk model.currentLine
-        , linePosition <- model.linePosition + String.length s
-        }
+        { model | currentLine <- line
+                , linePosition <- model.linePosition + String.length s }
 
     Ansi.CarriageReturn ->
       { model | linePosition <- 0 }
 
     Ansi.Linebreak ->
-      { model |
-        previousLines <- model.previousLines ++ [model.currentLine]
-      , currentLine <- []
-      }
+      { model | previousLines <- model.previousLines ++ [model.currentLine]
+              , currentLine <- [] }
 
     Ansi.Remainder s ->
       { model | remainder <- s }
+
+    _ ->
+      { model | currentStyle <- updateStyle action model.currentStyle }
+
+updateStyle : Ansi.Action -> Style -> Style
+updateStyle action style =
+  case action of
+    Ansi.SetForeground mc ->
+      { style | foreground <- mc }
+
+    Ansi.SetBackground mc ->
+      { style | background <- mc }
+
+    Ansi.SetInverted b ->
+      { style | inverted <- b }
+
+    Ansi.SetBold b ->
+      { style | bold <- b }
+
+    Ansi.SetFaint b ->
+      { style | faint <- b }
+
+    Ansi.SetItalic b ->
+      { style | italic <- b }
+
+    Ansi.SetUnderline b ->
+      { style | underline <- b }
 
 view : Model -> Html.Html
 view model =
