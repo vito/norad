@@ -3,6 +3,7 @@ module Log where
 import Debug
 import Html
 import Html.Attributes
+import Html.Lazy
 import String
 
 type Color
@@ -202,7 +203,10 @@ handleAction action model =
 view : Model -> Html.Html
 view model =
   Html.pre []
-    (List.map viewLine model.previousLines ++ [viewLine model.currentLine])
+    (List.map lazyLine model.previousLines ++ [lazyLine model.currentLine])
+
+lazyLine : Line -> Html.Html
+lazyLine = Html.Lazy.lazy viewLine
 
 viewLine : Line -> Html.Html
 viewLine line =
