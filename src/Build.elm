@@ -11,6 +11,7 @@ import EventSource
 
 import BuildEvent
 import Log
+import Step
 
 -- MODEL
 
@@ -18,9 +19,8 @@ type alias Model =
   { actions : Signal.Address Action
   , build : String
   , eventSource : Maybe EventSource.EventSource
-  -- , events : List BuildEvent.BuildEvent
   , buildStatus : Maybe BuildEvent.BuildStatus
-  , logs : Dict.Dict Int Log.Model
+  , steps : Dict.Dict Int Step.Model
   , connectionError : Bool
   }
 
@@ -37,7 +37,7 @@ init actions build =
         , build = build
         , eventSource = Nothing
         , buildStatus = Nothing
-        , logs = Dict.empty
+        , steps = Dict.empty
         , connectionError = False
         }
   in (model, subscribeToEvents build actions)
@@ -68,8 +68,8 @@ update action model =
     Event (Ok (BuildEvent.BuildStatus s)) ->
       ({ model | buildStatus <- Just s }, Effects.none)
 
-    Event (Ok (BuildEvent.Log origin log)) ->
-      ({ model | logs <- Dict.update (origin.location.id) (appendLog log) model.logs }, Effects.none)
+    Event (Ok (BuildEvent.Log origin output)) ->
+      ({ model | steps <- Dict.update (origin.location.id) (appendLog origin output) model.steps }, Effects.none)
 
     Event (Ok _) ->
       (model, Effects.none)
@@ -89,11 +89,15 @@ update action model =
       ({ model | eventSource <- Nothing }, Effects.none)
 
 
-appendLog : String -> Maybe Log.Model -> Maybe Log.Model
-appendLog log ms =
-  case ms of
-    Nothing -> Just (Log.update log Log.init)
-    Just x -> Just (Log.update log x)
+appendLog : BuildEvent.Origin -> String -> Maybe Step.Model -> Maybe Step.Model
+appendLog origin log ms =
+  let
+    step =
+      case ms of
+        Nothing -> Step.init origin.stepName origin.stepType origin.location
+        Just x -> x
+  in
+    Just (Step.update (Step.AppendLog log) step)
 
 -- VIEW
 
@@ -105,7 +109,7 @@ view address model =
         , Html.text " "
         , Html.text ("status " ++ Maybe.withDefault "unknown" (Maybe.map toString model.buildStatus))
         ]
-    , Html.ul [] (List.map (\e -> Html.li [] [Log.view e]) (Dict.values model.logs))
+    , Html.ul [] (List.map (\e -> Html.li [] [Step.view e]) (Dict.values model.steps))
     , if model.connectionError
          then Html.text "connection failed"
          else Html.text "connection ok"

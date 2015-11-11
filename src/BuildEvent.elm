@@ -4,7 +4,7 @@ import Json.Decode as Json exposing ((:=))
 
 type BuildEvent
   = BuildStatus BuildStatus
-  | Log EventOrigin String
+  | Log Origin String
 
 type alias BuildEventEnvelope =
   { event : String
@@ -12,14 +12,19 @@ type alias BuildEventEnvelope =
   , value : Json.Value
   }
 
-type alias EventOrigin =
+type alias Origin =
   { stepName : String
-  , stepType : String
+  , stepType : StepType
   , source : String
-  , location : EventOriginLocation
+  , location : Location
   }
 
-type alias EventOriginLocation =
+type StepType
+  = StepTypeTask
+  | StepTypeGet
+  | StepTypePut
+
+type alias Location =
   { id : Int
   , parentID : Int
   , parallelGroup : Int
@@ -63,21 +68,28 @@ decodeStatus =
       "succeeded" -> Ok BuildStatusSucceeded
       unknown -> Err ("unknown build status: " ++ unknown)
 
-decodeOrigin : Json.Decoder EventOrigin
+decodeOrigin : Json.Decoder Origin
 decodeOrigin =
-  Json.object4 EventOrigin
+  Json.object4 Origin
     ("name" := Json.string)
-    ("type" := Json.string)
+    decodeStepType
     ("source" := Json.string)
     ("location" := decodeLocation)
 
-decodeLocation : Json.Decoder EventOriginLocation
+decodeLocation : Json.Decoder Location
 decodeLocation =
-  Json.object5 EventOriginLocation
+  Json.object5 Location
     ("id" := Json.int)
     ("parent_id" := Json.int)
     ("parallel_group" := Json.int)
     ("serial_group" := Json.int)
     ("hook" := Json.string)
 
--- EVENTS
+decodeStepType : Json.Decoder StepType
+decodeStepType =
+  Json.customDecoder ("type" := Json.string) <| \t ->
+    case t of
+      "task" -> Ok StepTypeTask
+      "get" -> Ok StepTypeGet
+      "put" -> Ok StepTypePut
+      unknown -> Err ("unknown step type: " ++ unknown)
