@@ -66,6 +66,8 @@ decodeStatus =
     case status of
       "started" -> Ok BuildStatusStarted
       "succeeded" -> Ok BuildStatusSucceeded
+      "failed" -> Ok BuildStatusFailed
+      "errored" -> Ok BuildStatusErrored
       unknown -> Err ("unknown build status: " ++ unknown)
 
 decodeOrigin : Json.Decoder Origin
