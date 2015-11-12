@@ -32,6 +32,7 @@ update action model =
 view : Model -> Html
 view model =
   Html.div []
-    [ Html.text (toString model.location)
+    [ Html.text model.name
+    , Html.text (toString model.location)
     , Log.view model.log
     ]
