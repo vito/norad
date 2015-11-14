@@ -44,6 +44,7 @@ type Action
   | PipelineAction Pipeline.Action
   | JobAction Job.Action
   | BuildAction Build.Action
+  | Refresh
 
 update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
@@ -68,6 +69,15 @@ update action model =
 
     GoTo _ ->
       Debug.log "not found" (model, Effects.none)
+
+    Refresh ->
+      case model.currentPage of
+        IndexPage m ->
+          updatePage model (Index.update Index.Refresh m) IndexPage IndexAction
+
+        _ ->
+          (model, Effects.none)
+
 
     IndexAction a ->
       case model.currentPage of

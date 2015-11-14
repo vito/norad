@@ -16,7 +16,6 @@ import Routes
 type alias Model =
   { pipelines : List Pipeline
   , currentPipeline : Maybe Pipeline.Model
-  , lastUpdated : Time.Time
   , connectionError : Bool
   }
 
@@ -27,7 +26,7 @@ type alias Pipeline =
 
 init : Maybe String -> (Model, Effects Action)
 init pipeline =
-  let model = Model [] Nothing 0 False
+  let model = Model [] Nothing False
   in
      case pipeline of
        Nothing ->
@@ -41,7 +40,7 @@ init pipeline =
 
 type Action
   = PipelinesLoaded (Maybe (List Pipeline))
-  | Refresh Time.Time
+  | Refresh
   | PipelineAction String Pipeline.Action
 
 update : Action -> Model -> (Model, Effects Action)
@@ -66,10 +65,20 @@ update action model =
           Just _ -> (withPipelines, Effects.none)
           Nothing -> switchToPipeline main.name withPipelines
 
-    Refresh time ->
-      if (time - model.lastUpdated) > (5 * Time.second)
-         then ({ model | lastUpdated <- time }, fetchPipelines)
-         else (model, Effects.none)
+    Refresh ->
+      case model.currentPipeline of
+        Nothing ->
+          (model, fetchPipelines)
+
+        Just current ->
+          let (updated, effects) = Pipeline.update Pipeline.Refresh current
+          in
+            ( { model | currentPipeline <- Just updated }
+            , Effects.batch
+                [ fetchPipelines
+                , Effects.map (PipelineAction current.pipeline) effects
+                ]
+            )
 
     PipelineAction name a ->
       case model.currentPipeline of
