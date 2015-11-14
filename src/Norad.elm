@@ -26,7 +26,7 @@ type Page
 init : Signal.Address Action -> (Model, Effects.Effects Action)
 init pageDrivenActions =
   let
-      (indexModel, indexEffects) = Index.init
+      (indexModel, indexEffects) = Index.init Nothing
       model =
         { currentPage = IndexPage indexModel
         , pageDrivenActions = pageDrivenActions
@@ -52,10 +52,10 @@ update action model =
       (model, Effects.none)
 
     GoTo (Routes.Index) ->
-      updatePage model Index.init IndexPage IndexAction
+      updatePage model (Index.init Nothing) IndexPage IndexAction
 
     GoTo (Routes.Pipeline pipeline) ->
-      updatePage model (Pipeline.init pipeline) PipelinePage PipelineAction
+      updatePage model (Index.init (Just pipeline)) IndexPage IndexAction
 
     GoTo (Routes.Job pipeline job) ->
       updatePage model (Job.init pipeline job) JobPage JobAction

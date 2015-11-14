@@ -1,6 +1,6 @@
 module Index where
 
-import Effects
+import Effects exposing (Effects)
 import Html
 import Html.Attributes
 import Http
@@ -8,12 +8,14 @@ import Json.Decode as Json exposing ((:=))
 import Task
 import Time
 
+import Pipeline
 import Routes
 
 -- MODEL
 
 type alias Model =
   { pipelines : List Pipeline
+  , currentPipeline : Maybe Pipeline.Model
   , lastUpdated : Time.Time
   , connectionError : Bool
   }
@@ -23,34 +25,82 @@ type alias Pipeline =
   , paused : Bool
   }
 
-init : (Model, Effects.Effects Action)
-init = (Model [] 0 False, fetchPipelines)
+init : Maybe String -> (Model, Effects Action)
+init pipeline =
+  let model = Model [] Nothing 0 False
+  in
+     case pipeline of
+       Nothing ->
+         (model, fetchPipelines)
 
+       Just name ->
+         let (loadedModel, modelEffects) = switchToPipeline name model
+         in (loadedModel, Effects.batch [fetchPipelines, modelEffects])
 
 -- UPDATE
 
 type Action
   = PipelinesLoaded (Maybe (List Pipeline))
   | Refresh Time.Time
+  | PipelineAction String Pipeline.Action
 
-update : Action -> Model -> (Model, Effects.Effects Action)
+update : Action -> Model -> (Model, Effects Action)
 update action model =
+  let (updated, effects) = update' action model
+  in (updated, Effects.batch [Effects.tick Refresh, effects])
+
+update' : Action -> Model -> (Model, Effects Action)
+update' action model =
   case action of
     PipelinesLoaded Nothing ->
       ( { model | connectionError <- True }
-      , Effects.tick Refresh
+      , Effects.none
       )
 
-    PipelinesLoaded (Just pipelines) ->
-      ( { model | connectionError <- False, pipelines <- pipelines }
-      , Effects.tick Refresh
+    PipelinesLoaded (Just []) ->
+      ( { model | connectionError <- False }
+      , Effects.none
       )
+
+    PipelinesLoaded (Just (main :: rest)) ->
+      let withPipelines =
+            { model | connectionError <- False
+                    , pipelines <- (main :: rest) }
+      in
+        case withPipelines.currentPipeline of
+          Just _ -> (withPipelines, Effects.none)
+          Nothing -> switchToPipeline main.name withPipelines
 
     Refresh time ->
       if (time - model.lastUpdated) > (5 * Time.second)
          then ({ model | lastUpdated <- time }, fetchPipelines)
-         else (model, Effects.tick Refresh)
+         else (model, Effects.none)
 
+    PipelineAction name a ->
+      case model.currentPipeline of
+        Just current ->
+          if current.pipeline == name
+            then
+              let (updated, effects) = Pipeline.update a current
+              in
+                 ( { model | currentPipeline <- Just updated }
+                 , Effects.map (PipelineAction name) effects
+                 )
+
+            -- navigated away
+            else (model, Effects.none)
+
+        Nothing ->
+          -- should be impossible
+          (model, Effects.none)
+
+switchToPipeline : String -> Model -> (Model, Effects Action)
+switchToPipeline name model =
+  let (mainPipeline, mainEffects) = Pipeline.init name
+  in
+    ( { model | currentPipeline <- Just mainPipeline }
+    , Effects.map (PipelineAction name) mainEffects
+    )
 
 -- VIEW
 
@@ -61,6 +111,11 @@ view address model =
     , if model.connectionError
          then Html.text "connection failed"
          else Html.text "connection ok"
+    , case model.currentPipeline of
+        Nothing ->
+          Html.text "no pipeline selected"
+        Just pipeline ->
+          Pipeline.view (Signal.forwardTo address (PipelineAction pipeline.pipeline)) pipeline
     ]
 
 viewPipeline : Signal.Address Action -> Pipeline -> Html.Html
@@ -73,7 +128,7 @@ viewPipeline address pipeline =
 
 -- EFFECTS
 
-fetchPipelines : Effects.Effects Action
+fetchPipelines : Effects Action
 fetchPipelines =
   Http.get decodePipelines "http://127.0.0.1:8080/api/v1/pipelines"
     |> Task.toMaybe
