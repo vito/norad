@@ -46,11 +46,6 @@ type Action
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
-  let (updated, effects) = update' action model
-  in (updated, Effects.batch [Effects.tick Refresh, effects])
-
-update' : Action -> Model -> (Model, Effects Action)
-update' action model =
   case action of
     PipelinesLoaded Nothing ->
       ( { model | connectionError <- True }

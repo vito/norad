@@ -39,19 +39,15 @@ update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
   case action of
     JobsLoaded Nothing ->
-      ( { model | connectionError <- True }
-      , Effects.tick Refresh
-      )
+      ({ model | connectionError <- True }, Effects.none)
 
     JobsLoaded (Just jobs) ->
-      ( { model | connectionError <- False, jobs <- jobs }
-      , Effects.tick Refresh
-      )
+      ({ model | connectionError <- False, jobs <- jobs }, Effects.none)
 
     Refresh time ->
       if (time - model.lastUpdated) > (5 * Time.second)
          then ({ model | lastUpdated <- time }, fetchJobs model.pipeline)
-         else (model, Effects.tick Refresh)
+         else (model, Effects.none)
 
 
 -- VIEW

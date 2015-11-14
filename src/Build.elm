@@ -19,6 +19,7 @@ type alias Model =
   { actions : Signal.Address Action
   , build : String
   , eventSource : Maybe EventSource.EventSource
+  , eventsLoaded : Bool
   , buildStatus : Maybe BuildEvent.BuildStatus
   , steps : Dict.Dict Int Step.Model
   , connectionError : Bool
@@ -36,6 +37,7 @@ init actions build =
         { actions = actions
         , build = build
         , eventSource = Nothing
+        , eventsLoaded = False
         , buildStatus = Nothing
         , steps = Dict.empty
         , connectionError = False
@@ -80,7 +82,7 @@ update action model =
     EndOfEvents ->
       case model.eventSource of
         Just es ->
-          (model, closeEvents es)
+          ({ model | eventsLoaded <- True }, closeEvents es)
 
         Nothing ->
           (model, Effects.none)
@@ -109,7 +111,9 @@ view address model =
         , Html.text " "
         , Html.text ("status " ++ Maybe.withDefault "unknown" (Maybe.map toString model.buildStatus))
         ]
-    , Html.ul [] (List.map (\e -> Html.li [] [Step.view e]) (Dict.values model.steps))
+    , if model.eventsLoaded
+         then Html.ul [] (List.map (\e -> Html.li [] [Step.view e]) (Dict.values model.steps))
+         else Html.div [] [Html.text "loading..."]
     , if model.connectionError
          then Html.text "connection failed"
          else Html.text "connection ok"
