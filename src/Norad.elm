@@ -56,7 +56,12 @@ update action model =
       updatePage model (Index.init Nothing) IndexPage IndexAction
 
     GoTo (Routes.Pipeline pipeline) ->
-      updatePage model (Index.init (Just pipeline)) IndexPage IndexAction
+      case model.currentPage of
+        IndexPage indexModel ->
+          updatePage model (Index.update (Index.SwitchPipeline pipeline) indexModel) IndexPage IndexAction
+
+        _ ->
+          updatePage model (Index.init (Just pipeline)) IndexPage IndexAction
 
     GoTo (Routes.Job pipeline job) ->
       updatePage model (Job.init pipeline job) JobPage JobAction

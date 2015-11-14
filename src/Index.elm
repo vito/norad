@@ -41,6 +41,7 @@ init pipeline =
 type Action
   = PipelinesLoaded (Maybe (List Pipeline))
   | Refresh
+  | SwitchPipeline String
   | PipelineAction String Pipeline.Action
 
 update : Action -> Model -> (Model, Effects Action)
@@ -64,6 +65,9 @@ update action model =
         case withPipelines.currentPipeline of
           Just _ -> (withPipelines, Effects.none)
           Nothing -> switchToPipeline main.name withPipelines
+
+    SwitchPipeline pipeline ->
+      switchToPipeline pipeline model
 
     Refresh ->
       case model.currentPipeline of
