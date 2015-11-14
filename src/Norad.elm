@@ -26,13 +26,15 @@ type Page
 init : Signal.Address Action -> (Model, Effects.Effects Action)
 init pageDrivenActions =
   let
-      (indexModel, indexEffects) = Index.init Nothing
-      model =
-        { currentPage = IndexPage indexModel
-        , pageDrivenActions = pageDrivenActions
-        }
+    (indexModel, indexEffects) =
+      Index.init Nothing
+
+    model =
+      { currentPage = IndexPage indexModel
+      , pageDrivenActions = pageDrivenActions
+      }
   in
-     (model, Effects.map IndexAction indexEffects)
+    (model, Effects.map IndexAction indexEffects)
 
 
 -- UPDATE
@@ -121,8 +123,8 @@ update action model =
           (model, Effects.none)
 
 updatePage : Model -> (pm, Effects.Effects pa) -> (pm -> Page) -> (pa -> Action) -> (Model, Effects.Effects Action)
-updatePage m (pm, pe) p a = ({ m | currentPage <- p pm }, Effects.map a pe)
-
+updatePage m (pm, pe) p a =
+  ({ m | currentPage <- p pm }, Effects.map a pe)
 
 -- VIEW
 

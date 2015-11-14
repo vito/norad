@@ -26,8 +26,8 @@ type alias Build =
   }
 
 init : String -> String -> (Model, Effects.Effects Action)
-init pipeline job = (Model pipeline job [] False, fetchBuilds pipeline job)
-
+init pipeline job =
+  (Model pipeline job [] False, fetchBuilds pipeline job)
 
 -- UPDATE
 
@@ -55,8 +55,8 @@ view address model =
     [ Html.h1 [] [Html.text (model.pipeline ++ "/" ++ model.job)]
     , Html.ul [] (List.map (\p -> Html.li [] [viewBuild p]) model.builds)
     , if model.connectionError
-         then Html.text "connection failed"
-         else Html.text "connection ok"
+        then Html.text "connection failed"
+        else Html.text "connection ok"
     ]
 
 viewBuild : Build -> Html.Html

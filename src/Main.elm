@@ -11,8 +11,12 @@ import Routes
 app : StartApp.App Norad.Model
 app =
   let
-    pageDrivenActions = Signal.mailbox Norad.Noop
-    autoUpdate = Signal.map (always Norad.Refresh) (Time.every (5 * Time.second))
+    pageDrivenActions =
+      Signal.mailbox Norad.Noop
+
+    autoUpdate =
+      Signal.map (always Norad.Refresh) <|
+        Time.every (5 * Time.second)
   in
     StartApp.start
       { init = Norad.init pageDrivenActions.address
@@ -23,10 +27,13 @@ app =
       }
 
 pageNavigations : Signal Routes.Page
-pageNavigations = Signal.map Routes.mainRoute History.hash
+pageNavigations =
+  Signal.map Routes.mainRoute History.hash
 
 main : Signal Html.Html
-main = app.html
+main =
+  app.html
 
 port tasks : Signal (Task.Task Effects.Never ())
-port tasks = app.tasks
+port tasks =
+  app.tasks

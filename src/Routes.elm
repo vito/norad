@@ -11,12 +11,14 @@ type Page
   | Build String
 
 mainRoute : Router.Route Page
-mainRoute = Router.match
-  [ "" :-> always Index
-  , "#!/index" :-> always Index
-  , "#!/pipelines/" :-> pipelineRoute
-  , "#!/builds/" :-> Build
-  ] NotFound
+mainRoute =
+  Router.match
+    [ "" :-> always Index
+    , "#!/index" :-> always Index
+    , "#!/pipelines/" :-> pipelineRoute
+    , "#!/builds/" :-> Build
+    ]
+    NotFound
 
 pipelineRoute : Router.Route Page
 pipelineRoute route =

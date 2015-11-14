@@ -33,16 +33,17 @@ type alias Build =
 init : Signal.Address Action -> String -> (Model, Effects.Effects Action)
 init actions build =
   let
-      model =
-        { actions = actions
-        , build = build
-        , eventSource = Nothing
-        , eventsLoaded = False
-        , buildStatus = Nothing
-        , steps = Dict.empty
-        , connectionError = False
-        }
-  in (model, subscribeToEvents build actions)
+    model =
+      { actions = actions
+      , build = build
+      , eventSource = Nothing
+      , eventsLoaded = False
+      , buildStatus = Nothing
+      , steps = Dict.empty
+      , connectionError = False
+      }
+  in
+    (model, subscribeToEvents build actions)
 
 
 -- UPDATE
@@ -71,7 +72,12 @@ update action model =
       ({ model | buildStatus <- Just s }, Effects.none)
 
     Event (Ok (BuildEvent.Log origin output)) ->
-      ({ model | steps <- Dict.update (origin.location.id) (appendLog origin output) model.steps }, Effects.none)
+      let
+        updatedStep = appendLog origin output
+      in
+        ( { model | steps <- Dict.update origin.location.id updatedStep model.steps }
+        , Effects.none
+        )
 
     Event (Ok _) ->
       (model, Effects.none)
@@ -96,8 +102,10 @@ appendLog origin log ms =
   let
     step =
       case ms of
-        Nothing -> Step.init origin.stepName origin.stepType origin.location
-        Just x -> x
+        Nothing ->
+          Step.init origin.stepName origin.stepType origin.location
+        Just x ->
+          x
   in
     Just (Step.update (Step.AppendLog log) step)
 
@@ -112,11 +120,11 @@ view address model =
         , Html.text ("status " ++ Maybe.withDefault "unknown" (Maybe.map toString model.buildStatus))
         ]
     , if model.eventsLoaded
-         then Html.ul [] (List.map (\e -> Html.li [] [Step.view e]) (Dict.values model.steps))
-         else Html.div [] [Html.text "loading..."]
+        then Html.ul [] (List.map (\e -> Html.li [] [Step.view e]) (Dict.values model.steps))
+        else Html.div [] [Html.text "loading..."]
     , if model.connectionError
-         then Html.text "connection failed"
-         else Html.text "connection ok"
+        then Html.text "connection failed"
+        else Html.text "connection ok"
     ]
 
 
@@ -125,13 +133,21 @@ view address model =
 subscribeToEvents : String -> Signal.Address Action -> Effects.Effects Action
 subscribeToEvents build actions =
   let
-      settings =
-        EventSource.Settings
-          (Just (Signal.forwardTo actions (always Opened)))
-          (Just (Signal.forwardTo actions (always Errored)))
-      connect = EventSource.connect ("http://127.0.0.1:8080/api/v1/builds/" ++ build ++ "/events") settings
-      eventsSub = EventSource.on "event" (Signal.forwardTo actions (Event << parseEvent))
-      endSub = EventSource.on "end" (Signal.forwardTo actions (always EndOfEvents))
+    settings =
+      EventSource.Settings
+        (Just <| Signal.forwardTo actions (always Opened))
+        (Just <| Signal.forwardTo actions (always Errored))
+
+    connect =
+      EventSource.connect ("http://127.0.0.1:8080/api/v1/builds/" ++ build ++ "/events") settings
+
+    eventsSub =
+      EventSource.on "event" <|
+        Signal.forwardTo actions (Event << parseEvent)
+
+    endSub =
+      EventSource.on "end" <|
+        Signal.forwardTo actions (always EndOfEvents)
   in
     connect `Task.andThen` eventsSub `Task.andThen` endSub
       |> Task.map Listening

@@ -46,7 +46,8 @@ The task produces the EventSource immediately, and never fails. Event handlers
 should be registered with `on`.
 -}
 connect : String -> Settings -> Task.Task x EventSource
-connect = Native.EventSource.connect
+connect =
+  Native.EventSource.connect
 
 {-| Listen for an event, emitting it to the given address.
 
@@ -56,9 +57,11 @@ The task produces the EventSource to help with chaining:
 
 -}
 on : String -> Signal.Address Event -> EventSource -> Task.Task x EventSource
-on = Native.EventSource.on
+on =
+  Native.EventSource.on
 
 {-| Close the event source.
 -}
 close : EventSource -> Task.Task x ()
-close = Native.EventSource.close
+close =
+  Native.EventSource.close

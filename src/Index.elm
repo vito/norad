@@ -26,15 +26,18 @@ type alias Pipeline =
 
 init : Maybe String -> (Model, Effects Action)
 init pipeline =
-  let model = Model [] Nothing False
+  let
+    model = Model [] Nothing False
   in
-     case pipeline of
-       Nothing ->
-         (model, fetchPipelines)
+    case pipeline of
+      Nothing ->
+        (model, fetchPipelines)
 
-       Just name ->
-         let (loadedModel, modelEffects) = switchToPipeline name model
-         in (loadedModel, Effects.batch [fetchPipelines, modelEffects])
+      Just name ->
+        let
+          (loadedModel, modelEffects) = switchToPipeline name model
+        in
+          (loadedModel, Effects.batch [fetchPipelines, modelEffects])
 
 -- UPDATE
 
@@ -58,13 +61,17 @@ update action model =
       )
 
     PipelinesLoaded (Just (main :: rest)) ->
-      let withPipelines =
-            { model | connectionError <- False
-                    , pipelines <- (main :: rest) }
+      let
+        withPipelines =
+          { model | connectionError <- False
+                  , pipelines <- (main :: rest) }
       in
         case withPipelines.currentPipeline of
-          Just _ -> (withPipelines, Effects.none)
-          Nothing -> switchToPipeline main.name withPipelines
+          Just _ ->
+            (withPipelines, Effects.none)
+
+          Nothing ->
+            switchToPipeline main.name withPipelines
 
     SwitchPipeline pipeline ->
       switchToPipeline pipeline model
@@ -75,7 +82,8 @@ update action model =
           (model, fetchPipelines)
 
         Just current ->
-          let (updated, effects) = Pipeline.update Pipeline.Refresh current
+          let
+            (updated, effects) = Pipeline.update Pipeline.Refresh current
           in
             ( { model | currentPipeline <- Just updated }
             , Effects.batch
@@ -89,11 +97,12 @@ update action model =
         Just current ->
           if current.pipeline == name
             then
-              let (updated, effects) = Pipeline.update a current
+              let
+                (updated, effects) = Pipeline.update a current
               in
-                 ( { model | currentPipeline <- Just updated }
-                 , Effects.map (PipelineAction name) effects
-                 )
+                ( { model | currentPipeline <- Just updated }
+                , Effects.map (PipelineAction name) effects
+                )
 
             -- navigated away
             else (model, Effects.none)
@@ -104,7 +113,8 @@ update action model =
 
 switchToPipeline : String -> Model -> (Model, Effects Action)
 switchToPipeline name model =
-  let (mainPipeline, mainEffects) = Pipeline.init name
+  let
+    (mainPipeline, mainEffects) = Pipeline.init name
   in
     ( { model | currentPipeline <- Just mainPipeline }
     , Effects.map (PipelineAction name) mainEffects
@@ -117,8 +127,8 @@ view address model =
   Html.div []
     [ Html.ul [] (List.map (\p -> Html.li [] [viewPipeline address p]) model.pipelines)
     , if model.connectionError
-         then Html.text "connection failed"
-         else Html.text "connection ok"
+        then Html.text "connection failed"
+        else Html.text "connection ok"
     , case model.currentPipeline of
         Nothing ->
           Html.text "no pipeline selected"

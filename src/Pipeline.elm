@@ -25,7 +25,8 @@ type alias Job =
   }
 
 init : String -> (Model, Effects.Effects Action)
-init pipeline = (Model pipeline [] False, fetchJobs pipeline)
+init pipeline =
+  (Model pipeline [] False, fetchJobs pipeline)
 
 
 -- UPDATE
